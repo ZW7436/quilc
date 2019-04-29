@@ -344,8 +344,7 @@ used to specify CHIP-SPEC."
                                :adjustable t
                                :initial-contents rewriting-rules))
              (loop :for method :in compilation-methods
-                   :do (vector-push-extend method
-                                           (hardware-object-compilation-methods obj))))
+                   :do (vector-push-extend method (hardware-object-compilation-methods obj))))
     ;; set up the basic optimal 2Q compiler
     (vector-push-extend (approximate-2q-compiler-for type chip-spec)
                         (hardware-object-compilation-methods obj))
@@ -425,7 +424,7 @@ used to specify CHIP-SPEC."
                     (list #'PHASE-to-RZ
                           #'RY-to-XZX
                           #'RX-to-ZXZXZ
-                          #'euler-compiler)))
+                          #'euler-ZYZ-compiler)))
             :into compilation-methods
           :do (push current-type higher-precedence)
           :finally
@@ -448,32 +447,18 @@ used to specify CHIP-SPEC."
 
 (defun install-generic-compilers (chip-spec architecture)
   (let ((ret (make-adjustable-vector)))
-    (vector-push-extend (lambda (instr)
-                          (SWAP-to-native-SWAPs chip-spec instr))
-                        ret)
+    (vector-push-extend #'SWAP-to-native-SWAPs ret)
     (when (optimal-2q-target-meets-requirements architecture ':cz)
-      (vector-push-extend (lambda (instr)
-                            (CNOT-to-native-CNOTs chip-spec instr))
-                          ret)
-      (vector-push-extend (lambda (instr)
-                            (CZ-to-native-CZs chip-spec instr))
-                          ret))
+      (vector-push-extend #'CNOT-to-native-CNOTs ret)
+      (vector-push-extend #'CZ-to-native-CZs ret))
     (when (optimal-2q-target-meets-requirements architecture ':iswap)
-      (vector-push-extend (lambda (instr)
-                            (ISWAP-to-native-ISWAPs chip-spec instr))
-                          ret))
+      (vector-push-extend #'ISWAP-to-native-ISWAPs ret))
     (when (optimal-2q-target-meets-requirements architecture ':cphase)
-      (vector-push-extend (lambda (instr)
-                            (CPHASE-to-native-CPHASEs chip-spec instr))
-                          ret))
+      (vector-push-extend #'CPHASE-to-native-CPHASEs ret))
     (when (optimal-2q-target-meets-requirements architecture ':piswap)
-      (vector-push-extend (lambda (instr)
-                            (PISWAP-to-native-PISWAPs chip-spec instr))
-                          ret))
+      (vector-push-extend #'PISWAP-to-native-PISWAPs ret))
     (when (find ':cnot (alexandria:ensure-list architecture))
-      (vector-push-extend (lambda (instr)
-                            (CNOT-to-native-CNOTs chip-spec instr))
-                          ret))
+      (vector-push-extend #'CNOT-to-native-CNOTs ret))
     ;; We make this unconditional. We could later conditionalize it if
     ;; we happen to have better CCNOT translations for specific target
     ;; gate sets.
@@ -481,22 +466,19 @@ used to specify CHIP-SPEC."
     (vector-push-extend #'PHASE-to-RZ ret)
     (cond
       ((optimal-2q-target-meets-requirements architecture ':cz)
-       (vector-push-extend #'ucr-compiler ret))
+       (vector-push-extend #'ucr-compiler-to-cz ret))
       ((optimal-2q-target-meets-requirements architecture ':iswap)
-       (vector-push-extend (lambda (instr)
-                             (ucr-compiler instr :target ':iswap))
-                           ret))
+       (vector-push-extend #'ucr-compiler-to-iswap ret))
       ((find ':cnot (alexandria:ensure-list architecture))
-       (vector-push-extend (lambda (instr)
-                             (ucr-compiler instr :target ':cnot))
-                           ret))
+       (vector-push-extend #'ucr-compiler-to-cz ret))
       (t
        (error "Can't find a general UCR compiler for this target type.")))
-    (vector-push-extend #'state-prep-compiler ret)
+    (vector-push-extend #'state-prep-1q-compiler ret)
+    (vector-push-extend #'state-prep-2q-compiler ret)
+    (vector-push-extend #'state-prep-trampolining-compiler ret)
     (vector-push-extend #'recognize-ucr ret)
     (when (typep architecture 'optimal-2q-target)
-      (vector-push-extend (approximate-2q-compiler-for architecture chip-spec)
-                          ret))
+      (vector-push-extend (approximate-2q-compiler-for architecture chip-spec) ret))
     (vector-push-extend #'qs-compiler ret)
     (setf (chip-specification-generic-compilers chip-spec) ret)))
 
