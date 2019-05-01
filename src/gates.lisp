@@ -511,6 +511,23 @@ Note that this is a controlled version of a R_z gate multiplied by a phase."
                                  0 isin cos  0
                                  0 0    0    1))))
 
+(define-default-gate CAN 2 (alpha beta gamma)
+  "The canonical family of gates."
+  (assert (realp alpha))
+  (assert (realp beta))
+  (assert (realp gamma))
+  (let ((a+b-g  (* 2 (cis (*  1/2 (+    alpha    beta (- gamma))))))
+        (a-b+g  (* 2 (cis (*  1/2 (+    alpha (- beta)   gamma)))))
+        (-a-b-g (* 2 (cis (* -1/2 (+    alpha    beta    gamma)))))
+        (-a+b+g (* 2 (cis (*  1/2 (+ (- alpha)   beta    gamma))))))
+    (make-row-major-matrix
+     4 4
+     (mapcar (lambda (z) (/ z 4))
+             (list (+ a+b-g a-b+g) 0                 0                 (- a-b+g a+b-g)
+                   0               (+ -a-b-g -a+b+g) (- -a-b-g -a+b+g) 0
+                   0               (- -a-b-g -a+b+g) (+ -a-b-g -a+b+g) 0
+                   (- a-b+g a+b-g) 0                 0                 (+ a+b-g a-b+g))))))
+
 ;;;;;;;;;;;;;; Conversion of GATE-DEFINITIONs to GATEs ;;;;;;;;;;;;;;;
 
 ;;; These are convenient default translations from GATE-DEFINITIONs to
