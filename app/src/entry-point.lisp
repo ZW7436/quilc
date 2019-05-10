@@ -77,7 +77,7 @@
     #+forest-sdk
     (("check-sdk-version") :type boolean :optional t :initial-value nil :documentation "Check for a new SDK version at launch.")
     #+forest-sdk
-    (("proxy" :type string :optional t :initial-value nil :documentation "Proxy to use when checking for an SDK update."))))
+    (("proxy") :type string :optional t :initial-value nil :documentation "Proxy to use when checking for an SDK update.")))
 
 (defparameter *isa-descriptors*
   (alexandria::alist-hash-table
